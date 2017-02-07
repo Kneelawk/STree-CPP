@@ -1,7 +1,10 @@
 #include <iconv.h>
 #include <string>
+#include <sstream>
 #include "utils/streamutils.h"
 #include "utils/encoding_error.h"
+
+using namespace std;
 
 namespace stree {
 
@@ -11,40 +14,40 @@ namespace utils {
  * Integer writing/reading utilities
  */
 
-void writeByte(std::ostream *stream, std::uint8_t data) {
+void writeByte(ostream *stream, uint8_t data) {
 	char buf[] = { (char) data };
 	stream->write(buf, 1);
 }
-std::uint8_t readByte(std::istream *stream) {
+uint8_t readByte(istream *stream) {
 	char buf[1];
 	stream->read(buf, 1);
 	return buf[0];
 }
 
-void writeShort(std::ostream *stream, std::uint16_t data) {
+void writeShort(ostream *stream, uint16_t data) {
 	char buf[] = { (char) ((data >> 0x08) & 0xFF), (char) (data & 0xFF) };
 	stream->write(buf, 2);
 }
-std::uint16_t readShort(std::istream *stream) {
+uint16_t readShort(istream *stream) {
 	char buf[2];
 	stream->read(buf, 2);
 	return ((buf[0] & 0xFF) << 0x08) | (buf[1] & 0xFF);
 }
 
-void writeInt(std::ostream *stream, std::uint32_t data) {
+void writeInt(ostream *stream, uint32_t data) {
 	char buf[] = { (char) ((data >> 0x18) & 0xFF),
 			(char) ((data >> 0x10) & 0xFF), (char) ((data >> 0x08) & 0xFF),
 			(char) (data & 0xFF) };
 	stream->write(buf, 4);
 }
-std::uint32_t readInt(std::istream *stream) {
+uint32_t readInt(istream *stream) {
 	char buf[4];
 	stream->read(buf, 4);
 	return ((buf[0] & 0xFF) << 0x18) | ((buf[1] & 0xFF) << 0x10)
 			| ((buf[2] & 0xFF) << 0x08) | (buf[3] & 0xFF);
 }
 
-void writeLong(std::ostream *stream, std::uint64_t data) {
+void writeLong(ostream *stream, uint64_t data) {
 	char buf[] = { (char) ((data >> 0x38) & 0xFF),
 			(char) ((data >> 0x30) & 0xFF), (char) ((data >> 0x28) & 0xFF),
 			(char) ((data >> 0x20) & 0xFF), (char) ((data >> 0x18) & 0xFF),
@@ -52,40 +55,40 @@ void writeLong(std::ostream *stream, std::uint64_t data) {
 			(char) (data & 0xFF) };
 	stream->write(buf, 8);
 }
-std::uint64_t readLong(std::istream *stream) {
+uint64_t readLong(istream *stream) {
 	char buf[8];
 	stream->read(buf, 8);
-	return ((std::uint64_t) (buf[0] & 0xFF) << 0x38)
-			| (((std::uint64_t) (buf[1] & 0xFF)) << 0x30)
-			| (((std::uint64_t) (buf[2] & 0xFF)) << 0x28)
-			| (((std::uint64_t) (buf[3] & 0xFF)) << 0x20)
-			| (((std::uint64_t) (buf[4] & 0xFF)) << 0x18)
-			| (((std::uint64_t) (buf[5] & 0xFF)) << 0x10)
-			| (((std::uint64_t) (buf[6] & 0xFF)) << 0x08)
-			| ((std::uint64_t) (buf[7] & 0xFF));
+	return ((uint64_t) (buf[0] & 0xFF) << 0x38)
+			| (((uint64_t) (buf[1] & 0xFF)) << 0x30)
+			| (((uint64_t) (buf[2] & 0xFF)) << 0x28)
+			| (((uint64_t) (buf[3] & 0xFF)) << 0x20)
+			| (((uint64_t) (buf[4] & 0xFF)) << 0x18)
+			| (((uint64_t) (buf[5] & 0xFF)) << 0x10)
+			| (((uint64_t) (buf[6] & 0xFF)) << 0x08)
+			| ((uint64_t) (buf[7] & 0xFF));
 }
 
 /*
  * Floating point writing/reading utilities
  */
 
-void writeFloat(std::ostream *stream, float data) {
+void writeFloat(ostream *stream, float data) {
 	int_float c;
 	c.f = data;
 	writeInt(stream, c.i);
 }
-float readFloat(std::istream *stream) {
+float readFloat(istream *stream) {
 	int_float c;
 	c.i = readInt(stream);
 	return c.f;
 }
 
-void writeDouble(std::ostream *stream, double data) {
+void writeDouble(ostream *stream, double data) {
 	long_double c;
 	c.d = data;
 	writeLong(stream, c.l);
 }
-double readDouble(std::istream *stream) {
+double readDouble(istream *stream) {
 	long_double c;
 	c.l = readLong(stream);
 	return c.d;
@@ -95,7 +98,7 @@ double readDouble(std::istream *stream) {
  * String writing/reading utilities
  */
 
-int writeUTF16ToJava(std::ostream *stream, std::u16string data) {
+int writeUTF16ToJava(ostream *stream, u16string data) {
 	// Translated from java.io.DataOutputStream.writeUTF(String, DataOutput)
 
 	int datalen = data.length();
@@ -144,26 +147,67 @@ int writeUTF16ToJava(std::ostream *stream, std::u16string data) {
 	return utflen + 2;
 }
 
-std::u16string readUTF16FromJava(std::istream *stream) {
+u16string readUTF16FromJava(istream *stream) {
+	// translated from java.io.DataInputStream
+
 	int utflen = readShort(stream);
 
-	std::basic_stringstream<char16_t> str;
+	// there can't be more utf16 chars than stream bytes
+	char16_t *data = new char16_t[utflen];
+	int dataIndex = 0;
 
-	int i = 0;
+	uint8_t c, c2, c3;
+
+	int i;
+	for (i = 0; i < utflen; i++) {
+		c = readByte(stream);
+		if ((c & 0x80) != 0)
+			break;
+		data[dataIndex++] = (char16_t) (c & 0x7F);
+	}
+
 	while (i < utflen) {
-		uint8_t c = readByte(stream);
+		c = readByte(stream);
 		if ((c & 0x80) == 0) {
 			// single byte
-			str << (char16_t) (c & 0x7F);
+			data[dataIndex++] = (char16_t) (c & 0x7F);
 			i++;
 		} else if ((c & 0xE0) == 0xC0) {
-			// TODO two byte part
+			// double byte
+			i += 2;
+			if (i > utflen) {
+				throw new encoding_error(
+						"string terminates at partial character");
+			}
+			c2 = readByte(stream);
+			if ((c2 & 0xC0) != 0x80) {
+				throw new encoding_error("invalid utf-8 byte chain");
+			}
+			data[dataIndex++] = (char16_t) (((c & 0x1F) << 0x6) | (c2 & 0x3F));
 		} else if ((c & 0xF0) == 0xE0) {
-			// TODO three byte part
+			// triple byte
+			i += 3;
+			if (i > utflen) {
+				throw new encoding_error(
+						"string terminates at partial character");
+			}
+			c2 = readByte(stream);
+			c3 = readByte(stream);
+			if ((c2 & 0xC0) != 0x80 || (c3 & 0xC0) != 0x80) {
+				throw new encoding_error("invalid utf-8 byte chain");
+			}
+			data[dataIndex++] = (char16_t) (((c & 0x0F) << 0xC)
+					| ((c2 & 0x3F) << 0x6) | (c3 & 0x3F));
 		} else {
-			throw new encoding_error("not a java utf-8 string");
+			throw new encoding_error("not a java-utf-8 string");
 		}
 	}
+
+	u16string str(data, dataIndex);
+
+	delete data;
+
+	return str;
 }
 
 }
