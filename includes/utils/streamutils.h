@@ -36,14 +36,8 @@ float readFloat(std::istream *stream);
 void writeDouble(std::ostream *stream, double data);
 double readDouble(std::istream *stream);
 
-int writeUTF32ToJava(std::ostream *stream, std::u32string data);
 int writeUTF16ToJava(std::ostream *stream, std::u16string data);
-int writeUTF8ToJava(std::ostream *stream, std::string data);
-int writeAsciiToJava(std::ostream *stream, std::string data);
-std::u32string readJavaToUTF32(std::istream *stream);
-std::u16string readJavaToUTF16(std::istream *stream);
-std::string readJavaToUTF8(std::istream *stream);
-std::string readJavaToAscii(std::istream *stream);
+std::u16string readUTF16FromJava(std::istream *stream);
 
 }
 

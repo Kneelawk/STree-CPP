@@ -1,10 +1,15 @@
 #include <iconv.h>
 #include <string>
 #include "utils/streamutils.h"
+#include "utils/encoding_error.h"
 
 namespace stree {
 
 namespace utils {
+
+/*
+ * Integer writing/reading utilities
+ */
 
 void writeByte(std::ostream *stream, std::uint8_t data) {
 	char buf[] = { (char) data };
@@ -50,15 +55,19 @@ void writeLong(std::ostream *stream, std::uint64_t data) {
 std::uint64_t readLong(std::istream *stream) {
 	char buf[8];
 	stream->read(buf, 8);
-	return std::uint64_t((buf[0] & 0xFF) << 0x38)
-			| std::uint64_t((buf[1] & 0xFF) << 0x30)
-			| std::uint64_t((buf[2] & 0xFF) << 0x28)
-			| std::uint64_t((buf[3] & 0xFF) << 0x20)
-			| std::uint64_t((buf[4] & 0xFF) << 0x18)
-			| std::uint64_t((buf[5] & 0xFF) << 0x10)
-			| std::uint64_t((buf[6] & 0xFF) << 0x08)
-			| std::uint64_t(buf[7] & 0xFF);
+	return ((std::uint64_t) (buf[0] & 0xFF) << 0x38)
+			| (((std::uint64_t) (buf[1] & 0xFF)) << 0x30)
+			| (((std::uint64_t) (buf[2] & 0xFF)) << 0x28)
+			| (((std::uint64_t) (buf[3] & 0xFF)) << 0x20)
+			| (((std::uint64_t) (buf[4] & 0xFF)) << 0x18)
+			| (((std::uint64_t) (buf[5] & 0xFF)) << 0x10)
+			| (((std::uint64_t) (buf[6] & 0xFF)) << 0x08)
+			| ((std::uint64_t) (buf[7] & 0xFF));
 }
+
+/*
+ * Floating point writing/reading utilities
+ */
 
 void writeFloat(std::ostream *stream, float data) {
 	int_float c;
@@ -83,12 +92,8 @@ double readDouble(std::istream *stream) {
 }
 
 /*
- * String writing utilities
+ * String writing/reading utilities
  */
-
-int writeUTF32ToJava(std::ostream *stream, std::u32string data) {
-	// TODO finish write16JavaUTF
-}
 
 int writeUTF16ToJava(std::ostream *stream, std::u16string data) {
 	// Translated from java.io.DataOutputStream.writeUTF(String, DataOutput)
@@ -108,7 +113,9 @@ int writeUTF16ToJava(std::ostream *stream, std::u16string data) {
 		}
 	}
 
-	// TODO make sure utflen doesn't exceed 65535
+	if (utflen > 65535) {
+		throw new encoding_error("encoded string too long");
+	}
 
 	writeShort(stream, utflen);
 
@@ -137,32 +144,26 @@ int writeUTF16ToJava(std::ostream *stream, std::u16string data) {
 	return utflen + 2;
 }
 
-int writeUTF8ToJava(std::ostream *stream, std::string data) {
+std::u16string readUTF16FromJava(std::istream *stream) {
+	int utflen = readShort(stream);
 
-}
+	std::basic_stringstream<char16_t> str;
 
-int writeAsciiToJava(std::ostream *stream, std::string data) {
-
-}
-
-/*
- * String reading utilities
- */
-
-std::u32string readJavaToUTF32(std::istream *stream) {
-
-}
-
-std::u16string readJavaToUTF16(std::istream *stream) {
-
-}
-
-std::string readJavaToUTF8(std::istream *stream) {
-
-}
-
-std::string readJavaToAscii(std::istream *stream) {
-
+	int i = 0;
+	while (i < utflen) {
+		uint8_t c = readByte(stream);
+		if ((c & 0x80) == 0) {
+			// single byte
+			str << (char16_t) (c & 0x7F);
+			i++;
+		} else if ((c & 0xE0) == 0xC0) {
+			// TODO two byte part
+		} else if ((c & 0xF0) == 0xE0) {
+			// TODO three byte part
+		} else {
+			throw new encoding_error("not a java utf-8 string");
+		}
+	}
 }
 
 }
