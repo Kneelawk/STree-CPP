@@ -14,50 +14,50 @@ namespace utils {
  * Integer writing/reading utilities
  */
 
-void writeByte(ostream *stream, uint8_t data) {
+void writeByte(ostream &stream, uint8_t data) {
 	char buf[] = { (char) data };
-	stream->write(buf, 1);
+	stream.write(buf, 1);
 }
-uint8_t readByte(istream *stream) {
+uint8_t readByte(istream &stream) {
 	char buf[1];
-	stream->read(buf, 1);
+	stream.read(buf, 1);
 	return buf[0];
 }
 
-void writeShort(ostream *stream, uint16_t data) {
+void writeShort(ostream &stream, uint16_t data) {
 	char buf[] = { (char) ((data >> 0x08) & 0xFF), (char) (data & 0xFF) };
-	stream->write(buf, 2);
+	stream.write(buf, 2);
 }
-uint16_t readShort(istream *stream) {
+uint16_t readShort(istream &stream) {
 	char buf[2];
-	stream->read(buf, 2);
+	stream.read(buf, 2);
 	return ((buf[0] & 0xFF) << 0x08) | (buf[1] & 0xFF);
 }
 
-void writeInt(ostream *stream, uint32_t data) {
+void writeInt(ostream &stream, uint32_t data) {
 	char buf[] = { (char) ((data >> 0x18) & 0xFF),
 			(char) ((data >> 0x10) & 0xFF), (char) ((data >> 0x08) & 0xFF),
 			(char) (data & 0xFF) };
-	stream->write(buf, 4);
+	stream.write(buf, 4);
 }
-uint32_t readInt(istream *stream) {
+uint32_t readInt(istream &stream) {
 	char buf[4];
-	stream->read(buf, 4);
+	stream.read(buf, 4);
 	return ((buf[0] & 0xFF) << 0x18) | ((buf[1] & 0xFF) << 0x10)
 			| ((buf[2] & 0xFF) << 0x08) | (buf[3] & 0xFF);
 }
 
-void writeLong(ostream *stream, uint64_t data) {
+void writeLong(ostream &stream, uint64_t data) {
 	char buf[] = { (char) ((data >> 0x38) & 0xFF),
 			(char) ((data >> 0x30) & 0xFF), (char) ((data >> 0x28) & 0xFF),
 			(char) ((data >> 0x20) & 0xFF), (char) ((data >> 0x18) & 0xFF),
 			(char) ((data >> 0x10) & 0xFF), (char) ((data >> 0x08) & 0xFF),
 			(char) (data & 0xFF) };
-	stream->write(buf, 8);
+	stream.write(buf, 8);
 }
-uint64_t readLong(istream *stream) {
+uint64_t readLong(istream &stream) {
 	char buf[8];
-	stream->read(buf, 8);
+	stream.read(buf, 8);
 	return ((uint64_t) (buf[0] & 0xFF) << 0x38)
 			| (((uint64_t) (buf[1] & 0xFF)) << 0x30)
 			| (((uint64_t) (buf[2] & 0xFF)) << 0x28)
@@ -72,23 +72,23 @@ uint64_t readLong(istream *stream) {
  * Floating point writing/reading utilities
  */
 
-void writeFloat(ostream *stream, float data) {
+void writeFloat(ostream &stream, float data) {
 	int_float c;
 	c.f = data;
 	writeInt(stream, c.i);
 }
-float readFloat(istream *stream) {
+float readFloat(istream &stream) {
 	int_float c;
 	c.i = readInt(stream);
 	return c.f;
 }
 
-void writeDouble(ostream *stream, double data) {
+void writeDouble(ostream &stream, double data) {
 	long_double c;
 	c.d = data;
 	writeLong(stream, c.l);
 }
-double readDouble(istream *stream) {
+double readDouble(istream &stream) {
 	long_double c;
 	c.l = readLong(stream);
 	return c.d;
@@ -98,7 +98,7 @@ double readDouble(istream *stream) {
  * String writing/reading utilities
  */
 
-int writeUTF16ToJava(ostream *stream, u16string data) {
+int writeUTF16ToJava(ostream &stream, u16string data) {
 	// Translated from java.io.DataOutputStream.writeUTF(String, DataOutput)
 
 	int datalen = data.length();
@@ -147,7 +147,7 @@ int writeUTF16ToJava(ostream *stream, u16string data) {
 	return utflen + 2;
 }
 
-u16string readUTF16FromJava(istream *stream) {
+u16string readUTF16FromJava(istream &stream) {
 	// translated from java.io.DataInputStream
 
 	int utflen = readShort(stream);
