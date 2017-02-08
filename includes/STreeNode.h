@@ -23,6 +23,11 @@ public:
 	int getSTreeID();
 
 	void writeSTreeNode(STreeNode *node, std::ostream *stream);
+
+	/*
+	 * Static methods
+	 */
+	static void registerInfoProvider(infoproviders::STreeNodeInfoProvider *prov);
 };
 
 }
