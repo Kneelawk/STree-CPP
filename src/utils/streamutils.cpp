@@ -205,7 +205,7 @@ u16string readUTF16FromJava(istream &stream) {
 
 	u16string str(data, dataIndex);
 
-	delete data;
+	delete[] data;
 
 	return str;
 }
